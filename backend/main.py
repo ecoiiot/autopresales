@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from scoring_logic import CalculationRequest, CalculationResult, calculate_scores
 
@@ -20,7 +20,7 @@ async def root():
     return {"message": "工程招标报价评分系统 API"}
 
 
-@app.post("/calculate", response_model=CalculationResult)
+@app.post("/api/calculate", response_model=CalculationResult)
 async def calculate(request: CalculationRequest):
     """
     计算评分
@@ -32,10 +32,22 @@ async def calculate(request: CalculationRequest):
         return result
     except Exception as e:
         # 返回错误信息
-        raise Exception(f"计算失败: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"计算失败: {str(e)}")
+
+
+# 保留旧的 /calculate 端点以保持兼容性
+@app.post("/calculate", response_model=CalculationResult)
+async def calculate_legacy(request: CalculationRequest):
+    """
+    计算评分（旧端点，保持兼容）
+    """
+    try:
+        result = calculate_scores(request)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"计算失败: {str(e)}")
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

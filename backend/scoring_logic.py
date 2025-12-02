@@ -4,7 +4,8 @@ from pydantic import BaseModel
 
 class OutlierRule(BaseModel):
     """去极值规则"""
-    min_count: int  # 最小数量
+    min_count: int  # 最小数量（>=）
+    max_count: int | None = None  # 最大数量（<），可选，如果不填表示无上限
     remove_high: int  # 去掉最高价数量
     remove_low: int  # 去掉最低价数量
 
@@ -22,8 +23,10 @@ class ScoringConfig(BaseModel):
     k_factor: float  # K值
     base_score: float  # 基准分
     outlier_rules: List[OutlierRule]  # 去极值规则列表
-    high_price_factor: float  # 高价扣分系数
+    high_price_rules: List[IntervalRule]  # 高价区间规则列表
     low_price_rules: List[IntervalRule]  # 低价区间规则列表
+    min_score: float = 0  # 扣分最小值（默认0）
+    max_score: float = 100  # 加分最大值（默认100）
 
 
 class Bidder(BaseModel):
@@ -82,9 +85,11 @@ def calculate_scores(request: CalculationRequest) -> CalculationResult:
     matched_rule = None
     sorted_rules = sorted(config.outlier_rules, key=lambda x: x.min_count, reverse=True)
     for rule in sorted_rules:
-        if bidder_count > rule.min_count:
-            matched_rule = rule
-            break
+        # 判断是否在区间内：>= min_count 且 (< max_count 或 max_count 为空)
+        if bidder_count >= rule.min_count:
+            if rule.max_count is None or bidder_count < rule.max_count:
+                matched_rule = rule
+                break
     
     if matched_rule:
         # 去掉最高价
@@ -113,10 +118,17 @@ def calculate_scores(request: CalculationRequest) -> CalculationResult:
         score = config.base_score
         
         if price > benchmark_price:
-            # 报价高于基准价：线性扣分
-            score = config.base_score - (deviation * config.high_price_factor)
+            # 报价高于基准价：根据高价区间规则处理
+            abs_deviation = abs(deviation)
+            for rule in config.high_price_rules:
+                if rule.min_dev <= abs_deviation < rule.max_dev:
+                    if rule.type == "add":
+                        score = config.base_score + (abs_deviation * rule.factor)
+                    elif rule.type == "deduct":
+                        score = config.base_score - (abs_deviation * rule.factor)
+                    break
         elif price < benchmark_price:
-            # 报价低于基准价：根据区间规则处理
+            # 报价低于基准价：根据低价区间规则处理
             abs_deviation = abs(deviation)
             for rule in config.low_price_rules:
                 if rule.min_dev <= abs_deviation < rule.max_dev:
@@ -127,8 +139,8 @@ def calculate_scores(request: CalculationRequest) -> CalculationResult:
                     break
         # 如果 price == benchmark_price，保持基准分不变
         
-        # 确保得分不为负数
-        score = max(0, score)
+        # 确保得分在合理范围内：使用配置的极值限制
+        score = max(config.min_score, min(config.max_score, score))
         
         results.append(BidderResult(
             name=bidder.name,
