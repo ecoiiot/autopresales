@@ -22,6 +22,11 @@ export interface ScoringConfig {
   low_price_rules: IntervalRule[];   // 低价区间规则
   min_score?: number;  // 扣分最小值（默认0）
   max_score?: number;  // 加分最大值（默认100）
+  // 单调式规则（仅用于前端表单，提交时会转换为数组格式）
+  high_price_type?: 'add' | 'deduct';
+  high_price_factor?: number;
+  low_price_type?: 'add' | 'deduct';
+  low_price_factor?: number;
 }
 
 export interface Bidder {
@@ -41,13 +46,3 @@ export interface CalculationResult {
   benchmark_price: number;
   results: BidderResult[];
 }
-
-// 工程文件数据结构
-export interface ProjectFile {
-  version: string;
-  timestamp: number;
-  config: ScoringConfig;
-  bidders: Bidder[];
-  result?: CalculationResult;
-}
-
