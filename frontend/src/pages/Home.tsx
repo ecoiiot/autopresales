@@ -2,6 +2,7 @@ import React from 'react';
 import { Layout, Typography, Row, Col, Divider } from 'antd';
 import ToolCard from '../components/ToolCard';
 import { toolCategories } from '../config/tools';
+import Logo from '../components/Logo';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -19,9 +20,7 @@ const Home: React.FC = () => {
           justifyContent: 'space-between',
         }}
       >
-        <Title level={4} style={{ margin: 0, color: '#000' }}>
-        王得伏の工具箱
-        </Title>
+        <Logo />
       </Header>
 
       <Content style={{ padding: '48px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>

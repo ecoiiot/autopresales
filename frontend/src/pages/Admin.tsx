@@ -5,6 +5,7 @@ import ReactECharts from 'echarts-for-react';
 import axios from 'axios';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import Logo from '../components/Logo';
 
 const { Header, Content } = Layout;
 const { Title } = Typography;
@@ -154,11 +155,7 @@ const Admin: React.FC = () => {
         }}
       >
         <Space>
-          <Link to="/" style={{ color: '#1890ff', textDecoration: 'none' }}>
-            <Title level={3} style={{ margin: 0, color: '#000000' }}>
-            王得伏の工具箱
-            </Title>
-          </Link>
+          <Logo />
           <span style={{ color: '#999' }}>/</span>
           <Title level={4} style={{ margin: 0 }}>
             管理后台

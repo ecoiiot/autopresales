@@ -3,6 +3,7 @@ import { Layout, Typography, Button, Modal } from 'antd';
 import { Link, useParams } from 'react-router-dom';
 import { PlayCircleOutlined } from '@ant-design/icons';
 import { getToolById } from '../config/tools';
+import Logo from './Logo';
 
 const { Header } = Layout;
 const { Title } = Typography;
@@ -55,12 +56,8 @@ const ToolHeader: React.FC<ToolHeaderProps> = ({ videoPath }) => {
           zIndex: 1000,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <Title level={4} style={{ margin: 0, color: '#000' }}>
-              王得伏の工具箱
-            </Title>
-          </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Logo />
           {currentTool && (
             <>
               <span style={{ color: '#999', fontSize: '16px' }}>|</span>
