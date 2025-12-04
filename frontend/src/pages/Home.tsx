@@ -20,7 +20,7 @@ const Home: React.FC = () => {
         }}
       >
         <Title level={4} style={{ margin: 0, color: '#000' }}>
-        王得伏-工程工具集
+        王得伏の工具箱
         </Title>
       </Header>
 

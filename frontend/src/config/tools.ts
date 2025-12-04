@@ -44,24 +44,24 @@ export const toolCategories: ToolCategory[] = [
       },
     ],
   },
-  {
-    id: 'design',
-    name: '设计类',
-    description: '设计相关的工具集合',
-    tools: [],
-  },
-  {
-    id: 'construction',
-    name: '施工类',
-    description: '施工相关的工具集合',
-    tools: [],
-  },
-  {
-    id: 'maintenance',
-    name: '运维类',
-    description: '运维相关的工具集合',
-    tools: [],
-  },
+  // {
+  //   id: 'design',
+  //   name: '设计类',
+  //   description: '设计相关的工具集合',
+  //   tools: [],
+  // },
+  // {
+  //   id: 'construction',
+  //   name: '施工类',
+  //   description: '施工相关的工具集合',
+  //   tools: [],
+  // },
+  // {
+  //   id: 'maintenance',
+  //   name: '运维类',
+  //   description: '运维相关的工具集合',
+  //   tools: [],
+  // },
 ];
 
 // 获取所有工具

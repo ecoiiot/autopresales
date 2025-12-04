@@ -155,8 +155,8 @@ const Admin: React.FC = () => {
       >
         <Space>
           <Link to="/" style={{ color: '#1890ff', textDecoration: 'none' }}>
-            <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
-              王得伏-工程工具集
+            <Title level={3} style={{ margin: 0, color: '#000000' }}>
+            王得伏の工具箱
             </Title>
           </Link>
           <span style={{ color: '#999' }}>/</span>
