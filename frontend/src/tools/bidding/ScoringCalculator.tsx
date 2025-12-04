@@ -1555,7 +1555,7 @@ const Calculator: React.FC = () => {
   return (
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
       {/* Header */}
-      <ToolHeader toolName="报价评分计算器" />
+      <ToolHeader />
       
       {/* Body: 左右两栏布局 */}
       <Layout.Content style={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden', background: '#f0f2f5' }}>

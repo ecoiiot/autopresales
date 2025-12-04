@@ -2,3 +2,6 @@
 // 后续添加运维类工具时，在这里导出
 // export { default as Tool1 } from './Tool1';
 
+// 导出空对象，使其成为有效模块
+export {};
+
