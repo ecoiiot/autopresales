@@ -50,7 +50,7 @@ const Admin: React.FC = () => {
       setToolStats(statsRes.data);
       setSummary(summaryRes.data);
     } catch (error) {
-      console.error('获取统计数据失败:', error);
+      // 获取统计数据失败时静默处理
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ const Admin: React.FC = () => {
       const response = await axios.get('/api/admin/stats/access', { params });
       setAccessRecords(response.data);
     } catch (error) {
-      console.error('获取访问记录失败:', error);
+      // 获取访问记录失败时静默处理
     }
   };
 

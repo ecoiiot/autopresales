@@ -136,9 +136,6 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
     // 延迟执行，确保 localStorage 数据已加载
     const timer = setTimeout(() => {
       const currentValues = form.getFieldsValue();
-      console.log('RuleConfig useEffect - 当前表单值:', currentValues);
-      console.log('RuleConfig useEffect - high_price_factor:', currentValues.high_price_factor);
-      console.log('RuleConfig useEffect - low_price_factor:', currentValues.low_price_factor);
       
       // 只在字段不存在时才设置默认值
       const initialValues: Partial<ScoringConfig> = {};
@@ -181,7 +178,6 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
       }
       
       if (Object.keys(initialValues).length > 0) {
-        console.log('RuleConfig useEffect - 设置初始值:', initialValues);
         form.setFieldsValue(initialValues);
       }
     }, 200); // 延迟 200ms，确保 localStorage 数据已加载
@@ -421,12 +417,6 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
               if (e.target.value === 'monotonic') {
                 // 切换到统一规则模式：清空分段规则，但保留统一规则的字段（如果不存在则设置默认值）
                 const currentValues = form.getFieldsValue();
-                console.log('切换到统一规则模式，当前值:', {
-                  high_price_type: currentValues.high_price_type,
-                  high_price_factor: currentValues.high_price_factor,
-                  low_price_type: currentValues.low_price_type,
-                  low_price_factor: currentValues.low_price_factor,
-                });
                 // 只更新需要更新的字段，保留用户已输入的值
                 const updates: any = {
                   high_price_rules: [],
@@ -445,7 +435,6 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
                 if (currentValues.low_price_factor === undefined || currentValues.low_price_factor === null) {
                   updates.low_price_factor = 0.3;
                 }
-                console.log('将设置的值:', updates);
                 form.setFieldsValue(updates);
               } else {
                 // 切换到分段规则模式：清空统一规则字段，但保留分段规则
@@ -499,7 +488,6 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
                     style={{ width: '100%' }}
                     value={highPriceFactor}
                     onChange={(value) => {
-                      console.log('高价规则系数 onChange:', value);
                       if (value !== null && value !== undefined) {
                         form.setFieldValue('high_price_factor', value);
                         form.validateFields(['high_price_factor']).catch(() => {});
@@ -623,7 +611,6 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
                               precision={2} 
                               placeholder="0.3"
                               onChange={(value) => {
-                                console.log(`高价规则分段模式 - 第${index + 1}行系数 onChange:`, value);
                                 if (value !== null && value !== undefined) {
                                   form.setFieldValue(['high_price_rules', field.name, 'factor'], value);
                                   form.validateFields([['high_price_rules', field.name, 'factor']]).catch(() => {});
@@ -686,7 +673,6 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
                     style={{ width: '100%' }}
                     value={lowPriceFactor}
                     onChange={(value) => {
-                      console.log('低价规则系数 onChange:', value);
                       if (value !== null && value !== undefined) {
                         form.setFieldValue('low_price_factor', value);
                         form.validateFields(['low_price_factor']).catch(() => {});
@@ -810,7 +796,6 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
                               precision={2} 
                               placeholder="0.3"
                               onChange={(value) => {
-                                console.log(`低价规则分段模式 - 第${index + 1}行系数 onChange:`, value);
                                 if (value !== null && value !== undefined) {
                                   form.setFieldValue(['low_price_rules', field.name, 'factor'], value);
                                   form.validateFields([['low_price_rules', field.name, 'factor']]).catch(() => {});
@@ -1009,7 +994,6 @@ const DataEntry: React.FC<DataEntryProps> = ({
                 cancelText: '取消',
                 onOk: () => {
                   localStorage.removeItem(STORAGE_KEY);
-                  console.log('已清理 localStorage 缓存');
                   message.success('缓存已清理，页面将刷新');
                   setTimeout(() => {
                     window.location.reload();
@@ -1310,7 +1294,6 @@ const ExportRules: React.FC<ExportRulesProps> = ({ form }) => {
       
       message.success('规则导出成功');
     } catch (error) {
-      console.error('导出规则失败:', error);
       message.error('导出规则失败');
     }
   };
@@ -1356,21 +1339,10 @@ const Calculator: React.FC = () => {
       const savedData = localStorage.getItem(STORAGE_KEY);
       if (savedData) {
         const data = JSON.parse(savedData);
-        console.log('从 localStorage 加载的数据:', data);
         
         // 恢复规则配置
         if (data.config) {
-          console.log('恢复规则配置:', data.config);
-          console.log('high_price_factor:', data.config.high_price_factor);
-          console.log('low_price_factor:', data.config.low_price_factor);
           form.setFieldsValue(data.config);
-          // 验证设置后的值
-          setTimeout(() => {
-            const afterSet = form.getFieldsValue();
-            console.log('设置后的表单值:', afterSet);
-            console.log('设置后的 high_price_factor:', afterSet.high_price_factor);
-            console.log('设置后的 low_price_factor:', afterSet.low_price_factor);
-          }, 100);
         }
         
         // 恢复投标单位数据（如果 localStorage 中有数据，优先使用；否则使用初始数据）
@@ -1395,7 +1367,6 @@ const Calculator: React.FC = () => {
         setBidders(initialBidders);
       }
     } catch (error) {
-      console.error('加载保存的数据失败:', error);
       // 出错时也使用初始数据
       setBidders(initialBidders);
     }
@@ -1419,7 +1390,7 @@ const Calculator: React.FC = () => {
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
       } catch (error) {
-        console.error('保存数据失败:', error);
+        // 保存失败时静默处理
       }
     }, 300);
   }, [form, bidders, result, leftWidth]);
@@ -1442,14 +1413,6 @@ const Calculator: React.FC = () => {
       // 然后获取最新的表单值（确保获取到用户输入的最新值）
       const config = form.getFieldsValue();
       
-      // 详细打印表单中的所有字段值
-      console.log('=== 表单所有字段值 ===');
-      console.log('form.getFieldsValue():', config);
-      console.log('high_price_type:', form.getFieldValue('high_price_type'));
-      console.log('high_price_factor:', form.getFieldValue('high_price_factor'));
-      console.log('low_price_type:', form.getFieldValue('low_price_type'));
-      console.log('low_price_factor:', form.getFieldValue('low_price_factor'));
-      
       if (bidders.length === 0) {
         message.error('请至少输入一个投标单位');
         return;
@@ -1465,24 +1428,11 @@ const Calculator: React.FC = () => {
       // 处理单调式规则：将单个规则转换为数组格式
       const processedConfig = { ...config };
       
-      // 打印原始配置，用于调试
-      console.log('=== 原始配置（计算前） ===');
-      console.log('high_price_type:', config.high_price_type);
-      console.log('high_price_factor:', config.high_price_factor);
-      console.log('low_price_type:', config.low_price_type);
-      console.log('low_price_factor:', config.low_price_factor);
-      console.log('high_price_rules:', config.high_price_rules);
-      console.log('low_price_rules:', config.low_price_rules);
-      
       // 判断是否为统一规则模式：如果存在 high_price_type 和 high_price_factor，说明是统一规则模式
       const isMonotonicMode = config.high_price_type !== undefined && config.high_price_factor !== undefined && config.high_price_factor !== null;
       
       if (isMonotonicMode) {
         // 统一规则模式：使用 high_price_type 和 high_price_factor
-        console.log('检测到统一规则模式');
-        console.log('高价规则 - 类型:', config.high_price_type, '系数:', config.high_price_factor);
-        console.log('低价规则 - 类型:', config.low_price_type, '系数:', config.low_price_factor);
-        
         // 高价规则：使用统一规则的系数
         if (config.high_price_type && config.high_price_factor !== undefined && config.high_price_factor !== null) {
           processedConfig.high_price_rules = [{
@@ -1510,28 +1460,17 @@ const Calculator: React.FC = () => {
         delete processedConfig.low_price_factor;
       } else {
         // 分段规则模式：使用 high_price_rules 和 low_price_rules
-        console.log('检测到分段规则模式，使用 high_price_rules 和 low_price_rules');
         // 删除临时字段（如果存在）
         delete processedConfig.high_price_type;
         delete processedConfig.high_price_factor;
         delete processedConfig.low_price_type;
         delete processedConfig.low_price_factor;
       }
-      
-      console.log('=== 处理后的配置 ===');
-      console.log('high_price_rules:', processedConfig.high_price_rules);
-      console.log('low_price_rules:', processedConfig.low_price_rules);
 
-      // 打印传递的数据
       const requestData = {
         config: processedConfig,
         bidders,
       };
-      console.log('=== 计算评分 - 传递的数据 ===');
-      console.log('完整数据:', JSON.stringify(requestData, null, 2));
-      console.log('配置信息:', processedConfig);
-      console.log('投标单位:', bidders);
-      console.log('============================');
 
       setLoading(true);
       // 使用新的工具 API 路径，同时保持向后兼容
