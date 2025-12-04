@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Layout, Typography, Button, Modal } from 'antd';
 import { Link, useParams } from 'react-router-dom';
 import { PlayCircleOutlined } from '@ant-design/icons';
+import { getToolById } from '../config/tools';
 
 const { Header } = Layout;
 const { Title } = Typography;
@@ -14,6 +15,9 @@ interface ToolHeaderProps {
 const ToolHeader: React.FC<ToolHeaderProps> = ({ videoPath }) => {
   const { category, toolId } = useParams<{ category: string; toolId: string }>();
   const [videoVisible, setVideoVisible] = useState(false);
+  
+  // 根据路由参数获取当前工具信息
+  const currentTool = category && toolId ? getToolById(category, toolId) : undefined;
 
   // 生成视频路径：优先级：自定义路径 > 默认路径
   // 默认路径格式：/videos/{category}/{toolId}.mp4
@@ -51,11 +55,21 @@ const ToolHeader: React.FC<ToolHeaderProps> = ({ videoPath }) => {
           zIndex: 1000,
         }}
       >
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <Title level={4} style={{ margin: 0, color: '#000' }}>
-          王得伏の工具箱
-          </Title>
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <Title level={4} style={{ margin: 0, color: '#000' }}>
+              王得伏の工具箱
+            </Title>
+          </Link>
+          {currentTool && (
+            <>
+              <span style={{ color: '#999', fontSize: '16px' }}>|</span>
+              <Title level={4} style={{ margin: 0, color: '#000', cursor: 'default' }}>
+                {currentTool.name}
+              </Title>
+            </>
+          )}
+        </div>
         <Button
           type="link"
           icon={<PlayCircleOutlined />}
