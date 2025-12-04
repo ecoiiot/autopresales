@@ -20,9 +20,11 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# 安装系统依赖（用于健康检查）
+# 安装系统依赖（用于健康检查和 MySQL 客户端）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    default-libmysqlclient-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制后端依赖文件并安装

@@ -3,9 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
-from scoring_logic import CalculationRequest, CalculationResult, calculate_scores
 
-app = FastAPI(title="工程招标报价评分系统", version="1.0.0")
+# 导入工具注册机制
+from core.tool_registry import tool_registry
+from core.middleware import AccessTrackingMiddleware
+
+# 导入工具模块（会自动注册）
+from tools.bidding_scoring import router as bidding_scoring_router
+from tools.bidding_scoring.logic import CalculationRequest, CalculationResult, calculate_scores
+
+# 导入管理后台路由
+from admin.router import router as admin_router
+from admin.database import init_db
+
+app = FastAPI(title="王得伏工具平台", version="2.0.0")
 
 # 配置CORS，允许前端跨域请求
 app.add_middleware(
@@ -16,29 +27,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 静态文件目录路径（相对于 backend/main.py 的位置）
-# 在 Docker 容器中，路径为 /app/frontend/dist
-static_dir = Path(__file__).parent.parent / "frontend" / "dist"
+# 添加访问追踪中间件
+app.add_middleware(AccessTrackingMiddleware)
 
-# 先定义所有 API 路由（确保它们优先匹配）
+# 初始化数据库（创建表）
+try:
+    init_db()
+except Exception as e:
+    print(f"数据库初始化失败（可能数据库未就绪）: {e}")
+
+# 注册管理后台路由
+app.include_router(admin_router)
+
+# 注册所有工具路由
+for router in tool_registry.get_routers():
+    app.include_router(router)
+
+# 保持向后兼容：保留旧的 API 端点
 @app.post("/api/calculate", response_model=CalculationResult)
-async def calculate(request: CalculationRequest):
-    """
-    计算评分
-    
-    接收配置和投标单位列表，返回计算结果
-    """
-    try:
-        result = calculate_scores(request)
-        return result
-    except Exception as e:
-        # 返回错误信息
-        raise HTTPException(status_code=400, detail=f"计算失败: {str(e)}")
-
-
-# 保留旧的 /calculate 端点以保持兼容性
-@app.post("/calculate", response_model=CalculationResult)
-async def calculate_legacy(request: CalculationRequest):
+async def calculate_legacy_v1(request: CalculationRequest):
     """
     计算评分（旧端点，保持兼容）
     """
@@ -48,6 +55,22 @@ async def calculate_legacy(request: CalculationRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"计算失败: {str(e)}")
 
+
+@app.post("/calculate", response_model=CalculationResult)
+async def calculate_legacy_v2(request: CalculationRequest):
+    """
+    计算评分（旧端点，保持兼容）
+    """
+    try:
+        result = calculate_scores(request)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"计算失败: {str(e)}")
+
+
+# 静态文件目录路径（相对于 backend/main.py 的位置）
+# 在 Docker 容器中，路径为 /app/frontend/dist
+static_dir = Path(__file__).parent.parent / "frontend" / "dist"
 
 # 挂载静态文件（必须在所有 API 路由之后）
 # 注意：静态文件挂载必须在 SPA 回退路由之前
