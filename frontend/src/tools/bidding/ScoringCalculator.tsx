@@ -922,7 +922,7 @@ const DataEntry: React.FC<DataEntryProps> = ({
       render: (_: any, _record: Bidder & { key: string }, index: number) => {
         const bidderResult = getBidderResult(index);
         if (!bidderResult) {
-          return <Text type="secondary">-</Text>;
+          return <Text type="secondary">待计算</Text>;
         }
         const color = bidderResult.deviation > 0 ? '#ff4d4f' : bidderResult.deviation < 0 ? '#52c41a' : '#1890ff';
         return (
@@ -940,7 +940,7 @@ const DataEntry: React.FC<DataEntryProps> = ({
       render: (_: any, _record: Bidder & { key: string }, index: number) => {
         const bidderResult = getBidderResult(index);
         if (!bidderResult) {
-          return <Text type="secondary">-</Text>;
+          return <Text type="secondary">待计算</Text>;
         }
         const rank = getRank(index);
         const color = getRankColor(rank);
@@ -1020,7 +1020,7 @@ const DataEntry: React.FC<DataEntryProps> = ({
             <Text strong>
               基准价：
               <Text style={{ color: '#1890ff', fontSize: 16 }}>
-                ¥{result ? result.benchmark_price.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                {result ? `¥${result.benchmark_price.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '待计算'}
               </Text>
             </Text>
             <Space>
@@ -1329,6 +1329,9 @@ const Calculator: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [leftWidth, setLeftWidth] = useState(50); // 左侧宽度百分比
 
+  // 使用 useRef 标记是否已经初始化完成
+  const initializedRef = useRef(false);
+
   // 从 localStorage 加载数据
   useEffect(() => {
     try {
@@ -1366,6 +1369,11 @@ const Calculator: React.FC = () => {
       // 出错时也使用初始数据
       setBidders(initialBidders);
     }
+    
+    // 在加载完成后标记为已初始化
+    setTimeout(() => {
+      initializedRef.current = true;
+    }, 500);
   }, [form]);
 
   // 保存数据的函数（使用防抖）
@@ -1395,6 +1403,15 @@ const Calculator: React.FC = () => {
   useEffect(() => {
     saveData();
   }, [saveData]);
+
+  // 监听数据变化，自动清除计算结果
+  const formValues = Form.useWatch([], form);
+  useEffect(() => {
+    // 只有在初始化完成后才清除结果
+    if (initializedRef.current && result) {
+      setResult(null);
+    }
+  }, [formValues, bidders]);
 
   // 加载模板
   const handleTemplateSelect = (config: ScoringConfig) => {
