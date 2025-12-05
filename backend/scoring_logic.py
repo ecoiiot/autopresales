@@ -48,6 +48,7 @@ class BidderResult(BaseModel):
     deviation: float  # 偏离度（%）
     score: float  # 最终得分
     rank: int  # 排名
+    index: int = 0  # 原始索引，用于前端匹配（即使名称重复也能正确匹配）
 
 
 class CalculationResult(BaseModel):
@@ -81,13 +82,17 @@ def calculate_scores(request: CalculationRequest) -> CalculationResult:
     valid_prices = prices_sorted.copy()
     bidder_count = len(bidders)
     
-    # 找到匹配的去极值规则（按 min_count 降序排序，取第一个匹配的）
+    # 找到匹配的去极值规则（按 max_count 升序排序，优先匹配范围更小的规则）
     matched_rule = None
-    sorted_rules = sorted(config.outlier_rules, key=lambda x: x.min_count, reverse=True)
+    # 先按 max_count 升序排序（None 放在最后），再按 min_count 升序排序
+    sorted_rules = sorted(
+        config.outlier_rules,
+        key=lambda x: (x.max_count if x.max_count is not None else float('inf'), x.min_count)
+    )
     for rule in sorted_rules:
-        # 判断是否在区间内：>= min_count 且 (< max_count 或 max_count 为空)
-        if bidder_count >= rule.min_count:
-            if rule.max_count is None or bidder_count < rule.max_count:
+        # 判断是否在区间内：> min_count 且 (<= max_count 或 max_count 为空)
+        if bidder_count > rule.min_count:
+            if rule.max_count is None or bidder_count <= rule.max_count:
                 matched_rule = rule
                 break
     
@@ -110,7 +115,7 @@ def calculate_scores(request: CalculationRequest) -> CalculationResult:
     
     # 计算每个投标单位的得分
     results = []
-    for bidder in bidders:
+    for index, bidder in enumerate(bidders):
         price = bidder.price
         deviation = ((price - benchmark_price) / benchmark_price) * 100
         
@@ -147,16 +152,27 @@ def calculate_scores(request: CalculationRequest) -> CalculationResult:
             price=price,
             deviation=round(deviation, 2),
             score=round(score, 2),
-            rank=0  # 稍后排序
+            rank=0,  # 稍后排序
+            index=index  # 保存原始索引，用于前端匹配
         ))
     
     # 按得分降序排序，设置排名
-    results.sort(key=lambda x: x.score, reverse=True)
-    for i, result in enumerate(results, 1):
+    results_sorted = sorted(results, key=lambda x: x.score, reverse=True)
+    for i, result in enumerate(results_sorted, 1):
         result.rank = i
+    
+    # 按原始索引排序，保持与输入顺序一致
+    results_by_index = sorted(results, key=lambda x: x.index)
+    # 更新排名信息
+    for result in results_by_index:
+        # 从排序后的结果中查找对应的排名
+        for sorted_result in results_sorted:
+            if sorted_result.index == result.index:
+                result.rank = sorted_result.rank
+                break
     
     return CalculationResult(
         benchmark_price=round(benchmark_price, 2),
-        results=results
+        results=results_by_index
     )
 

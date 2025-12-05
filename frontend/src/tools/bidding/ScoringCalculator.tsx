@@ -26,7 +26,7 @@ const templates: Record<string, ScoringConfig> = {
     min_score: 0,
     max_score: 50,
     outlier_rules: [
-      { min_count: 0, max_count: 6, remove_high: 0, remove_low: 0 },
+      { min_count: 1, max_count: 6, remove_high: 0, remove_low: 0 },
       { min_count: 6, max_count: 20, remove_high: 1, remove_low: 1 },
     ],
     // 统一规则模式
@@ -44,7 +44,7 @@ const templates: Record<string, ScoringConfig> = {
     min_score: 0,
     max_score: 50,
     outlier_rules: [
-      { min_count: 0, max_count: 5, remove_high: 0, remove_low: 0 },
+      { min_count: 1, max_count: 5, remove_high: 0, remove_low: 0 },
       { min_count: 5, max_count: 20, remove_high: 1, remove_low: 1 },
     ],
     // 统一规则模式
@@ -146,7 +146,7 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
         initialValues.base_score = 40;
       }
       if (!currentValues.outlier_rules || currentValues.outlier_rules.length === 0) {
-        initialValues.outlier_rules = [{ min_count: 0, max_count: 5, remove_high: 0, remove_low: 0 }];
+        initialValues.outlier_rules = [{ min_count: 1, max_count: 5, remove_high: 0, remove_low: 0 }];
       }
       if (!currentValues.high_price_rules || currentValues.high_price_rules.length === 0) {
         initialValues.high_price_rules = [{ min_dev: 0, max_dev: 100, type: 'deduct', factor: 0.3 }];
@@ -308,19 +308,19 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
                       <Text strong style={{ marginRight: 2, minWidth: 12, display: 'inline-block' }}>
                         {getCircleNumber(index + 1)}
                       </Text>
-                      <Text>&gt;= </Text>
+                      <Text>&gt; </Text>
                       {isFirstRow ? (
                         <Form.Item
                           {...field}
                           name={[field.name, 'min_count']}
                           style={{ display: 'inline-block', margin: '0 8px', width: 80 }}
                           rules={[{ required: true, message: '必填' }]}
-                          initialValue={0}
+                          initialValue={1}
                         >
                           <InputNumber 
-                            min={0} 
+                            min={1} 
                             precision={0} 
-                            value={0}
+                            value={1}
                             disabled
                             style={{ width: 80 }}
                           />
@@ -355,11 +355,12 @@ const RuleConfig: React.FC<RuleConfigProps> = ({ form, onValuesChange }) => {
                           />
                         </Form.Item>
                       )}
-                      <Text> 且 &lt; </Text>
+                      <Text> 且 &lt;= </Text>
                       <Form.Item
                         {...field}
                         name={[field.name, 'max_count']}
                         style={{ display: 'inline-block', margin: '0 4px', width: 80 }}
+                        rules={[{ required: true, message: '必填' }]}
                       >
                         <InputNumber 
                           min={0} 
@@ -840,19 +841,20 @@ const DataEntry: React.FC<DataEntryProps> = ({
 }) => {
   // 使用 Form.useWatch 实时监听 k_factor 的变化
   const kFactor = Form.useWatch('k_factor', form) ?? 0.95;
-  // 根据单位名称获取计算结果
-  const getBidderResult = (name: string): BidderResult | undefined => {
+  // 使用 Form.useWatch 实时监听去极值规则的变化
+  const outlierRules = Form.useWatch('outlier_rules', form) || [];
+  // 根据索引获取计算结果（使用索引而不是名称，避免名称重复的问题）
+  const getBidderResult = (index: number): BidderResult | undefined => {
     if (!result) return undefined;
-    return result.results.find((r: BidderResult) => r.name === name);
+    // 后端返回的结果已经按索引排序，直接通过索引访问
+    return result.results[index];
   };
 
-  // 获取排名（根据得分从高到低）
-  const getRank = (name: string): number | null => {
+  // 获取排名（根据索引获取）
+  const getRank = (index: number): number | null => {
     if (!result) return null;
-    // 按得分从高到低排序
-    const sortedResults = [...result.results].sort((a, b) => b.score - a.score);
-    const index = sortedResults.findIndex(r => r.name === name);
-    return index >= 0 ? index + 1 : null;
+    const bidderResult = result.results[index];
+    return bidderResult ? bidderResult.rank : null;
   };
 
   // 获取排名对应的颜色
@@ -917,8 +919,8 @@ const DataEntry: React.FC<DataEntryProps> = ({
       key: 'deviation',
       width: 120,
       align: 'right',
-      render: (_: any, record: Bidder & { key: string }) => {
-        const bidderResult = getBidderResult(record.name);
+      render: (_: any, _record: Bidder & { key: string }, index: number) => {
+        const bidderResult = getBidderResult(index);
         if (!bidderResult) {
           return <Text type="secondary">-</Text>;
         }
@@ -935,12 +937,12 @@ const DataEntry: React.FC<DataEntryProps> = ({
       key: 'score',
       width: 120,
       align: 'right',
-      render: (_: any, record: Bidder & { key: string }) => {
-        const bidderResult = getBidderResult(record.name);
+      render: (_: any, _record: Bidder & { key: string }, index: number) => {
+        const bidderResult = getBidderResult(index);
         if (!bidderResult) {
           return <Text type="secondary">-</Text>;
         }
-        const rank = getRank(record.name);
+        const rank = getRank(index);
         const color = getRankColor(rank);
         const circleNumber = rank !== null && rank <= 3 ? getCircleNumber(rank) : '';
         return (
@@ -972,6 +974,19 @@ const DataEntry: React.FC<DataEntryProps> = ({
 
   const handleAddRow = () => {
     const currentCount = bidders.length;
+    
+    // 检查是否超过去极值规则最后一行的max_count
+    if (outlierRules && outlierRules.length > 0) {
+      // 获取最后一行的max_count
+      const lastRule = outlierRules[outlierRules.length - 1];
+      const maxCount = lastRule?.max_count;
+      
+      if (maxCount !== null && maxCount !== undefined && currentCount >= maxCount) {
+        message.warning(`单位数量已达到去极值规则要求的最大值 ${maxCount} 家，请先修改去极值规则中数据。`);
+        return;
+      }
+    }
+    
     const letterIndex = currentCount % 26;
     const letter = String.fromCharCode(65 + letterIndex);
     const unitName = `投标单位${letter}`;
@@ -985,33 +1000,23 @@ const DataEntry: React.FC<DataEntryProps> = ({
         <Typography.Title level={4} style={{ margin: 0 }}>价格录入与计算</Typography.Title>
         <Space>
           <Button 
-            danger
-            onClick={() => {
-              Modal.confirm({
-                title: '确认清理缓存',
-                content: '如果确定数据会丢失，是否继续？',
-                okText: '确认',
-                cancelText: '取消',
-                onOk: () => {
-                  localStorage.removeItem(STORAGE_KEY);
-                  message.success('缓存已清理，页面将刷新');
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 500);
-                },
-              });
-            }}
+            onClick={handleAddRow}
+            style={{ borderColor: '#52c41a', color: '#52c41a' }}
           >
-            清理缓存
+            新增单位
           </Button>
           <Button type="primary" onClick={onCalculate} loading={loading}>
             计算评分
           </Button>
         </Space>
       </div>
-      <Card
-        extra={
+      <Card>
+        <div style={{ marginBottom: 16 }}>
           <Space>
+            <Text strong>
+              单位总数：<Text style={{ color: '#1890ff', fontSize: 16 }}>{bidders.length}</Text>
+            </Text>
+            <span style={{ color: '#d9d9d9', margin: '0 8px' }}>|</span>
             <Text strong>
               基准价：
               <Text style={{ color: '#1890ff', fontSize: 16 }}>
@@ -1043,19 +1048,8 @@ const DataEntry: React.FC<DataEntryProps> = ({
                 />
               </Tooltip>
             </Space>
-            <span style={{ color: '#d9d9d9', margin: '0 8px' }}>|</span>
-            <Text strong>
-              单位总数：<Text style={{ color: '#1890ff', fontSize: 16 }}>{bidders.length}</Text>
-            </Text>
-            <Button 
-              onClick={handleAddRow}
-              style={{ borderColor: '#52c41a', color: '#52c41a' }}
-            >
-              新增单位
-            </Button>
           </Space>
-        }
-      >
+        </div>
         <Table
           columns={bidderColumns}
           dataSource={bidders.map((bidder: Bidder, index: number) => ({ ...bidder, key: index.toString() }))}
@@ -1098,9 +1092,9 @@ const ExportRules: React.FC<ExportRulesProps> = ({ form }) => {
           
           let condition = '';
           if (maxCount !== undefined && maxCount !== null) {
-            condition = `当有效投标人数量≥${minCount}家且<${maxCount}家时`;
+            condition = `当有效投标人数量>${minCount}家且≤${maxCount}家时`;
           } else {
-            condition = `当有效投标人数量≥${minCount}家时`;
+            condition = `当有效投标人数量>${minCount}家时`;
           }
           
           let action = '';
@@ -1119,14 +1113,14 @@ const ExportRules: React.FC<ExportRulesProps> = ({ form }) => {
         });
         
         // 检查是否需要添加默认规则
-        // 只有当第一条规则的 min_count > 0 时，才需要添加 <min_count 的默认规则
-        // 如果第一条规则从 >=0 开始，说明已经覆盖了所有情况，不需要添加默认规则
+        // 只有当第一条规则的 min_count > 1 时，才需要添加默认规则
+        // 如果第一条规则从 >1 开始（min_count = 1），说明已经覆盖了所有情况（>1家），不需要添加默认规则
         const firstRule = outlierRules[0];
         
-        if (firstRule && firstRule.min_count > 0) {
-          // 第一条规则不是从0开始，需要添加 <min_count 的默认规则
+        if (firstRule && firstRule.min_count > 1) {
+          // 第一条规则不是从1开始，需要添加 <=min_count 的默认规则
           const defaultKText = kFactor !== 1 ? `乘以${kFactor}` : '';
-          rules.push(`(${outlierRules.length + 1}) 当有效投标人数量<${firstRule.min_count}家时，取所有有效投标报价的算术平均值${defaultKText}作为评标基准价。`);
+          rules.push(`(${outlierRules.length + 1}) 当有效投标人数量≤${firstRule.min_count}家时，取所有有效投标报价的算术平均值${defaultKText}作为评标基准价。`);
         }
         
         return rules;
@@ -1223,6 +1217,8 @@ const ExportRules: React.FC<ExportRulesProps> = ({ form }) => {
         }
         
         // 添加分数限制说明
+        rules.push(`报价最低分：${minScore}分。`);
+        rules.push(`报价最高分：${maxScore}分。`);
         if (minScore > 0 || maxScore < 100) {
           rules.push(`最终得分限制在${minScore}分到${maxScore}分之间。`);
         }

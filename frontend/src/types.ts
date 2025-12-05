@@ -40,6 +40,7 @@ export interface BidderResult {
   deviation: number;
   score: number;
   rank: number;
+  index?: number;  // 原始索引，用于匹配（即使名称重复也能正确匹配）
 }
 
 export interface CalculationResult {
