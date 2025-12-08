@@ -9,7 +9,8 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from .database import get_db
-from .models import ToolAccess, ToolStatistic, ToolVideo
+from .models import ToolAccess, ToolStatistic, ToolVideo, AdminUser
+from .auth import verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/api/admin", tags=["管理后台"])
 
@@ -32,10 +33,74 @@ class AccessRecordResponse(BaseModel):
     path: Optional[str]
 
 
+class LoginRequest(BaseModel):
+    """登录请求"""
+    username: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    """登录响应"""
+    access_token: str
+    token_type: str = "bearer"
+    username: str
+
+
+@router.post("/login", response_model=LoginResponse)
+async def login(
+    request: LoginRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    管理员登录
+    
+    默认账号：admin / admin123
+    """
+    # 查找用户
+    user = db.query(AdminUser).filter(AdminUser.username == request.username).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户名或密码错误"
+        )
+    
+    if user.is_active != 1:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="账号已被禁用"
+        )
+    
+    # 验证密码
+    if not verify_password(request.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户名或密码错误"
+        )
+    
+    # 更新最后登录时间
+    user.last_login_time = datetime.now()
+    db.commit()
+    
+    # 创建token
+    access_token_expires = timedelta(minutes=60 * 24 * 7)  # 7天
+    access_token = create_access_token(
+        data={"sub": user.username},
+        expires_delta=access_token_expires
+    )
+    
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        username=user.username
+    )
+
+
 @router.get("/stats/tools", response_model=List[ToolStatsResponse])
 async def get_tool_statistics(
     days: int = Query(7, description="统计天数", ge=1, le=365),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     获取各工具使用统计
@@ -76,7 +141,8 @@ async def get_access_records(
     tool_id: Optional[str] = Query(None, description="工具ID（可选）"),
     limit: int = Query(100, description="返回记录数", ge=1, le=1000),
     offset: int = Query(0, description="偏移量", ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     获取访问记录
@@ -108,7 +174,8 @@ async def get_access_records(
 @router.get("/stats/summary")
 async def get_statistics_summary(
     days: int = Query(7, description="统计天数", ge=1, le=365),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     获取统计摘要
@@ -165,7 +232,8 @@ class VideoCreateRequest(BaseModel):
 @router.get("/videos", response_model=List[VideoInfoResponse])
 async def get_videos(
     tool_id: Optional[str] = Query(None, description="工具ID（可选）"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     获取工具演示视频列表
@@ -197,7 +265,8 @@ async def get_videos(
 @router.get("/videos/{tool_id}", response_model=Optional[VideoInfoResponse])
 async def get_video_by_tool_id(
     tool_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     根据工具ID获取视频信息
@@ -222,7 +291,8 @@ async def get_video_by_tool_id(
 @router.post("/videos", response_model=VideoInfoResponse)
 async def create_video(
     request: VideoCreateRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     创建或更新工具演示视频信息
@@ -278,7 +348,8 @@ async def create_video(
 @router.delete("/videos/{tool_id}")
 async def delete_video(
     tool_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     删除工具演示视频信息

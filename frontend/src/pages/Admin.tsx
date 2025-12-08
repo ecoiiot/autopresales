@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Typography, Card, Table, Space, Select, Statistic, Row, Col } from 'antd';
-import { Link } from 'react-router-dom';
+import { Layout, Typography, Card, Table, Space, Select, Statistic, Row, Col, Button } from 'antd';
+import { Link, useNavigate } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
-import axios from 'axios';
+import api from '../utils/axios';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Logo from '../components/Logo';
@@ -39,14 +39,15 @@ const Admin: React.FC = () => {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(false);
   const [days, setDays] = useState(7);
+  const navigate = useNavigate();
 
   // 获取统计数据
   const fetchStatistics = async () => {
     try {
       setLoading(true);
       const [statsRes, summaryRes] = await Promise.all([
-        axios.get(`/api/admin/stats/tools?days=${days}`),
-        axios.get(`/api/admin/stats/summary?days=${days}`),
+        api.get(`/api/admin/stats/tools?days=${days}`),
+        api.get(`/api/admin/stats/summary?days=${days}`),
       ]);
       setToolStats(statsRes.data);
       setSummary(summaryRes.data);
@@ -64,11 +65,18 @@ const Admin: React.FC = () => {
       if (toolId) {
         params.tool_id = toolId;
       }
-      const response = await axios.get('/api/admin/stats/access', { params });
+      const response = await api.get('/api/admin/stats/access', { params });
       setAccessRecords(response.data);
     } catch (error) {
       // 获取访问记录失败时静默处理
     }
+  };
+
+  // 退出登录
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_username');
+    navigate('/admin/login');
   };
 
   useEffect(() => {
@@ -161,6 +169,7 @@ const Admin: React.FC = () => {
             管理后台
           </Title>
         </Space>
+        <Button onClick={handleLogout}>退出登录</Button>
       </Header>
 
       <Content style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
