@@ -1479,7 +1479,7 @@ const Calculator: React.FC = () => {
         delete processedConfig.low_price_type;
         delete processedConfig.low_price_factor;
       }
-
+      
       const requestData = {
         config: processedConfig,
         bidders,

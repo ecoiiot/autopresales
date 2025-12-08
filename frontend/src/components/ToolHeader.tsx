@@ -63,7 +63,7 @@ const ToolHeader: React.FC<ToolHeaderProps> = ({ videoPath }) => {
               <span style={{ color: '#999', fontSize: '16px' }}>|</span>
               <Title level={4} style={{ margin: 0, color: '#000', cursor: 'default' }}>
                 {currentTool.name}
-              </Title>
+          </Title>
             </>
           )}
         </div>

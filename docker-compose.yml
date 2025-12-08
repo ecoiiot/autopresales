@@ -1,25 +1,23 @@
 version: '3.8'
 
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: wangdefu-mysql
+  postgres:
+    image: postgres:15
+    container_name: wangdefu-postgres
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_DATABASE: ${DB_NAME:-wangdefu}
-      MYSQL_USER: ${DB_USER:-root}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-wangdefu}
+      POSTGRES_USER: ${DB_USER:-postgres}
     ports:
-      - "${DB_PORT:-3306}:3306"
+      - "${DB_PORT:-5432}:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     restart: always
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    command: --default-authentication-plugin=mysql_native_password
 
   backend:
     build:
@@ -27,20 +25,20 @@ services:
       dockerfile: Dockerfile
     container_name: engineering-platform-backend
     ports:
-      - "8000:8000"
+      - "8001:8001"
     restart: always
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: ${DB_USER:-root}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-password}
       DB_NAME: ${DB_NAME:-wangdefu}
     # 健康检查：检查 API 是否可访问
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      test: ["CMD", "curl", "-f", "http://localhost:8001/docs"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -58,4 +56,4 @@ services:
       - backend
 
 volumes:
-  mysql_data:
+  postgres_data:
